@@ -11,7 +11,7 @@ OLD_SINGBOX_FOLDER="/root/agsb"  # 旧路径，用于兼容和清理
 
  # ================== 常量和环境变量 结束 ==================
 
-VERSION="1.0.7(2026-03-25)"
+VERSION="1.0.8(2026-06-26)"
 AUTHOR="littleDoraemon"
 
 # Environment variables for controlling CDN host and SNI values
@@ -30,6 +30,12 @@ export port_hy2=${hypt:-''};
 export port_vlr=${vlrt:-''}; 
 export port_tu=${tupt:-''}; 
 export port_any=${anypt:-''}; 
+export port_socks5=${socks5pt:-''};
+if [ -n "${socks5pt+x}" ] && [ -z "$port_socks5" ] && [ -n "${PORT:-}" ]; then
+    export port_socks5="$PORT"
+fi
+export socks5_username=${socks5_user:-${USERNAME:-''}};
+export socks5_password=${socks5_pass:-${PASSWORD:-''}};
 
 # 获取到的IP和出口ip不一样的时候，优先使用出口ip也就是out_ip
 export out_ip=${out_ip:-''};
@@ -66,7 +72,7 @@ vl_sni_pt="${vl_sni_pt:-443}"
 
 
 v46url="https://icanhazip.com"
-SCRIPT_URL="https://raw.githubusercontent.com/jyucoeng/singbox-tools/refs/heads/main/sb00.sh"
+SCRIPT_URL="https://raw.githubusercontent.com/jyucoeng/singbox-tools/refs/heads/main/sb.sh"
 
 CN_BING="www.bing.com"
 
@@ -123,7 +129,7 @@ get_subscribe_flag() {
 is_yes() { [ "${1:-}" = "yes" ]; }
 
 # 这些变量是你脚本外部用来“开启协议”的标记：
-# trpt / hypt / vmpt / vlrt / tupt
+# trpt / hypt / vmpt / vlrt / tupt / anypt / socks5pt
 # 只要标记存在，就启用对应协议
 if [ -n "${trpt+x}" ]; then
     trp=yes
@@ -151,9 +157,13 @@ if [ -n "${anypt+x}" ]; then
     anyp=yes
 fi
 
+if [ -n "${socks5pt+x}" ]; then
+    socksp=yes
+fi
+
 # 判断：至少启用一个协议
 any_proto_enabled() {
-    is_yes "$vlr" || is_yes "$vmp" || is_yes "$trp" || is_yes "$hyp" || is_yes "$tup" || is_yes "$anyp"
+    is_yes "$vlr" || is_yes "$vmp" || is_yes "$trp" || is_yes "$hyp" || is_yes "$tup" || is_yes "$anyp" || is_yes "$socksp"
 }
 
 # 判断：是否需要 Argo
@@ -719,7 +729,7 @@ cleanup_singbox_shortcut() {
 # 显示菜单
 showmode(){
     blue "===================================================="
-    gradient "       singbox 一键脚本（vmess/trojan Argo选1,vless+hy2+tuic+anytls 4个直连）"
+    gradient "       singbox 一键脚本（vmess/trojan Argo选1,vless+hy2+tuic+anytls+socks5 5个直连）"
     green    "       作者：$AUTHOR"
     yellow   "       版本：$VERSION"
     blue "===================================================="
@@ -874,6 +884,36 @@ rand_port() {
 
     # 兜底：用时间戳拼一个（保证有结果）
     echo $(( ( $(date +%s) % 55535 ) + 10000 ))
+}
+
+gen_socks5_username() {
+    tr -dc 'A-Za-z0-9' </dev/urandom | head -c 10
+}
+
+gen_socks5_password() {
+    tr -dc 'A-Za-z0-9!@#%^_+' </dev/urandom | head -c 12
+}
+
+init_socks5_credentials() {
+    if [ -n "${socks5_username:-}" ]; then
+        printf '%s\n' "$socks5_username" > "$SINGBOX_FOLDER_PATH/socks5_user"
+    elif [ -s "$SINGBOX_FOLDER_PATH/socks5_user" ]; then
+        socks5_username=$(cat "$SINGBOX_FOLDER_PATH/socks5_user" | tr -d '\n\r')
+    else
+        socks5_username=$(gen_socks5_username)
+        printf '%s\n' "$socks5_username" > "$SINGBOX_FOLDER_PATH/socks5_user"
+    fi
+
+    if [ -n "${socks5_password:-}" ]; then
+        printf '%s\n' "$socks5_password" > "$SINGBOX_FOLDER_PATH/socks5_pass"
+    elif [ -s "$SINGBOX_FOLDER_PATH/socks5_pass" ]; then
+        socks5_password=$(cat "$SINGBOX_FOLDER_PATH/socks5_pass" | tr -d '\n\r')
+    else
+        socks5_password=$(gen_socks5_password)
+        printf '%s\n' "$socks5_password" > "$SINGBOX_FOLDER_PATH/socks5_pass"
+    fi
+
+    chmod 600 "$SINGBOX_FOLDER_PATH/socks5_user" "$SINGBOX_FOLDER_PATH/socks5_pass" 2>/dev/null || true
 }
 
 
@@ -1546,6 +1586,34 @@ EOF
         cat >> "$SINGBOX_FOLDER_PATH/sb.json" <<EOF
 {"type": "anytls", "tag": "anytls-sb", "listen": "::", "listen_port": ${port_any},"sniff": true,"users": [{"password": "${uuid}"}],"tls": {"enabled": true,"server_name": "${any_sni}","certificate_path": "$SINGBOX_FOLDER_PATH/cert.pem", "key_path": "$SINGBOX_FOLDER_PATH/private.key"}},
 EOF
+    fi
+    # 添加 socks5 协议
+    if [ -n "$socksp" ]; then
+        if [ -n "$port_socks5" ]; then
+            echo "$port_socks5" > "$SINGBOX_FOLDER_PATH/port_socks5"
+        elif [ -s "$SINGBOX_FOLDER_PATH/port_socks5" ]; then
+            port_socks5=$(cat "$SINGBOX_FOLDER_PATH/port_socks5")
+        else
+            port_socks5=$(rand_port)
+            echo "$port_socks5" > "$SINGBOX_FOLDER_PATH/port_socks5"
+        fi
+
+        init_socks5_credentials
+        port_socks5=$(cat "$SINGBOX_FOLDER_PATH/port_socks5")
+        yellow "Socks5端口：$port_socks5"
+        # yellow "Socks5用户名：$socks5_username"
+        # yellow "Socks5密码：$socks5_password"
+
+
+        # 使用 jq 来安全地处理含有特殊字符的用户名和密码
+        jq -n \
+          --arg type "socks" \
+          --arg tag "socks5-sb" \
+          --arg listen "::" \
+          --argjson port "$port_socks5" \
+          --arg username "$socks5_username" \
+          --arg password "$socks5_password" \
+          '{type: $type, tag: $tag, listen: $listen, listen_port: $port, users: [{username: $username, password: $password}]},' >> "$SINGBOX_FOLDER_PATH/sb.json"
     fi
 }
 #  Generate Sing-box configuration file
@@ -2783,6 +2851,30 @@ append_jh() {
   echo -e "$1" >> "$SINGBOX_FOLDER_PATH/jh.txt"
 }
 
+url_encode_component() {
+  local s="${1:-}"
+
+  if command -v jq >/dev/null 2>&1; then
+    printf '%s' "$s" | jq -sRr @uri
+    return
+  fi
+
+  printf '%s' "$s" | sed -e 's/%/%25/g' -e 's/@/%40/g' -e 's/#/%23/g' -e 's/:/%3A/g' -e 's/+/%2B/g' -e 's/ /%20/g'
+}
+
+json_escape_string() {
+  local s="${1:-}"
+
+  if command -v jq >/dev/null 2>&1; then
+    printf '%s' "$s" | jq -sRr @json
+    return
+  fi
+
+  printf '"'
+  printf '%s' "$s" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
+  printf '"'
+}
+
 # 定义验证 IP 地址是否合法的函数
 is_valid_ip() {
   local ip
@@ -2916,7 +3008,7 @@ cip(){
     if grep -q "hy2-sb" "$SINGBOX_FOLDER_PATH/sb.json"; then 
         port_hy2=$(cat "$SINGBOX_FOLDER_PATH/port_hy2"); 
         hy_sni=$(cat "$SINGBOX_FOLDER_PATH/hy_sni"); 
-        hy2_link="hysteria2://$uuid@$server_ip:$port_hy2?security=tls&alpn=h3&insecure=1&sni=${hy_sni}#${sxname}hy2-$hostname"; 
+        hy2_link="hysteria2://$uuid@$server_ip:$port_hy2?security=tls&alpn=h3&insecure=1&allowInsecure=1&sni=${hy_sni}#${sxname}hy2-$hostname"; 
         yellow "💣【 Hysteria2 】(直连协议)"; 
         green "$hy2_link"
         append_jh "$hy2_link"
@@ -2961,12 +3053,13 @@ cip(){
         port_any=$(cat "$SINGBOX_FOLDER_PATH/port_any")
         any_sni=$(cat "$SINGBOX_FOLDER_PATH/any_sni")
 
-        anytls_link="anytls://${uuid}@${server_ip}:${port_any}?security=tls&sni=${any_sni}&fp=firefox&insecure=1&type=tcp#${sxname}anytls-$hostname"
+        anytls_link="anytls://${uuid}@${server_ip}:${port_any}?security=tls&sni=${any_sni}&fp=firefox&insecure=1&allowInsecure=1&type=tcp#${sxname}anytls-$hostname"
         yellow "🔐【 AnyTLS 】(直连协议)"; 
         green "$anytls_link"
         append_jh "$anytls_link"
         echo;
     fi
+
     #argodomain=$(cat "$SINGBOX_FOLDER_PATH/sbargoym.log" 2>/dev/null); [ -z "$argodomain" ] && argodomain=$(grep -a trycloudflare.com "$SINGBOX_FOLDER_PATH/argo.log" 2>/dev/null | awk 'NR==2{print}' | awk -F// '{print $2}' | awk '{print $1}')
    
     argodomain=$(cat "$SINGBOX_FOLDER_PATH/sbargoym.log" 2>/dev/null)
@@ -3010,6 +3103,23 @@ cip(){
 
 
     fi
+    
+     # Socks5 protocol output
+    if grep -q "socks5-sb" "$SINGBOX_FOLDER_PATH/sb.json"; then
+        port_socks5=$(cat "$SINGBOX_FOLDER_PATH/port_socks5" | tr -d '\n\r')
+        socks5_username=$(cat "$SINGBOX_FOLDER_PATH/socks5_user" | tr -d '\n\r')
+        socks5_password=$(cat "$SINGBOX_FOLDER_PATH/socks5_pass" | tr -d '\n\r')
+
+        socks5_user_enc=$(url_encode_component "$socks5_username")
+        socks5_pass_enc=$(url_encode_component "$socks5_password")
+        socks5_link="socks5://${socks5_user_enc}:${socks5_pass_enc}@${server_ip}:${port_socks5}#${sxname}socks5-$hostname"; 
+        yellow "🧦【 Socks5 】(此协议请不要直接在客户端里直连使用)";
+        green "$socks5_link"
+        append_jh " "
+        append_jh "$socks5_link"
+        echo;
+    fi
+
 
     update_subscription_file
     echo
@@ -3282,9 +3392,13 @@ check_port_conflicts_or_exit() {
   #  ❗ :- 不会发生“把 argo_pt 默认值写进去”的副作用；只有 := 才会。
   local argo_eff="${argo_pt:-8001}"
   local nginx_eff="${nginx_pt:-8080}"
+  local need_nginx=false
+  if [[ "$subscribe_norm" == "true" ]] || need_argo; then
+    need_nginx=true
+  fi
 
-  # ✅ 规则：argo_pt 和 nginx_pt 不能同时为 8001（按有效端口判断）
-  if [[ "$argo_eff" == "8001" && "$nginx_eff" == "8001" ]]; then
+  # ✅ 规则：需要 Nginx 时 argo_pt 和 nginx_pt 不能同时为 8001（按有效端口判断）
+  if $need_nginx && [[ "$argo_eff" == "8001" && "$nginx_eff" == "8001" ]]; then
     echo
     red "❌ 端口冲突：argo_pt 和 nginx_pt 不能同时等于 8001"
     yellow "原因：由于 8001 作为 argo_pt 的内部默认值（nginx_pt 默认 8080），因此不要把 nginx_pt 也设成 8001"
@@ -3293,9 +3407,11 @@ check_port_conflicts_or_exit() {
     exit 1
   fi
 
-  # 固定检查这四个；subscribe=true 时才额外检查 nginx_pt
-  local vars="trpt vlrt hypt tupt anypt"
-  [[ "$subscribe_norm" == "true" ]] && vars="$vars nginx_pt"
+  # 固定检查协议端口；subscribe=true 时才额外检查 nginx_pt
+  local vars="vmpt trpt vlrt hypt tupt anypt socks5pt"
+  if $need_nginx; then
+    vars="$vars argo_pt nginx_pt"
+  fi
 
   declare -A used   # port -> "name=value, name=value..."
   local has_conflict=0
@@ -3304,8 +3420,10 @@ check_port_conflicts_or_exit() {
   for k in $vars; do
     if [[ "$k" == "nginx_pt" ]]; then
       v="$nginx_eff"   # 用有效默认值参与检查，但不改 nginx_pt 本身
+    elif [[ "$k" == "socks5pt" ]]; then
+      v="$port_socks5" # socks5pt= 且 PORT=xxx 时，用实际端口参与检查
     else
-      v="${!k}"        # 动态取值：trpt/vlrt/hypt/tupt
+      v="${!k}"        # 动态取值：协议端口/argo_pt
     fi
 
     # 不为空才检查
