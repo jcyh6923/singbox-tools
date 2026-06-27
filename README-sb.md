@@ -207,11 +207,7 @@ trojan://0631a7f3-09f8-4144-acf2-a4f5bd9ed281@cdns.doon.eu.org:8443?...
 - 不传 → 默认 生成
 - 传 → 就能节点永远相同(请注意不要乱填，正确的值应该是43个字符)
 
-## 12、 socks5pt 指的是socks5协议的端口，不传就不启用socks5。同时自定义 username / password 环境变量的值。不传就自动生成随机。
-
-> **⚠️ 重要：`socks5_password` 必须使用单引号 `'...'`，千万不能用双引号！**  
-> 因为密码可能包含 `!` 等特殊字符，bash 双引号下会触发历史展开导致密码被破坏。  
-> 示例：`socks5_password='你的密码'` ✅ 正确，`socks5_password="你的密码"` ❌ 错误
+## 12、 socks5pt 指的是socks5协议的端口，不传就不启用socks5。同时自定义 socks5_username / socks5_password 环境变量的值。用户名/密码不传就自动随机生成。
 
 ## 13、所有的协议都会输出到聚合节点文件中: cat /root/doraemon/jh.txt
 
@@ -228,7 +224,7 @@ argo="trpt" \
 nginx_pt=41007 \
 socks5pt=31017 \
 socks5_username='你的s5用户名' \
-socks5_password='你的s5密码(必须用单引号包裹起来)' \
+socks5_password='你的s5密码' \
 agn="california.xxxx.xyz" \
 agk='ey开头的那一大串' \
 subscribe=true \
@@ -275,7 +271,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/jyucoeng/singbox-tools/refs/he
 ```bash
 socks5pt=31017 \
 socks5_username='你的s5用户名' \
-socks5_password='你的s5密码(必须用单引号包裹起来)' \
+socks5_password='你的s5密码' \
 bash <(curl -Ls https://raw.githubusercontent.com/jyucoeng/singbox-tools/refs/heads/main/sb.sh) rep
 ```
 
@@ -418,6 +414,12 @@ bash <(curl -Ls https://raw.githubusercontent.com/jyucoeng/singbox-tools/refs/he
 
 
 ## 版本变更信息
+v1.0.9
+ - 改用官方 sing-box 1.13.14（默认含 WireGuard）
+ - 移除 `sniff: true` 适配新版 sing-box 1.13+
+ - 修改socks5的socks5_username 和socks5_password环境变量名称（之前没添加socks5前缀）
+ - socks5 密码自动生成改为纯字母数字，不再含特殊符号
+
 v1.0.8
  - 新增 socks5 协议支持，可与其他协议自由组合,把一些 sni的默认值由  www.microsoft.com 改为 www.apple.com 
 

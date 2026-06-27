@@ -11,7 +11,7 @@ SINGBOX_FOLDER_PATH="/root/$SB_FOLDER"
 OLD_SINGBOX_FOLDER="/root/agsb"  # 旧路径，用于兼容和清理
 # ================== 文件夹路径配置 结束 ==================
 
-VERSION="1.0.12(2026-06-27)"
+VERSION="1.0.9(2026-06-27)"
 AUTHOR="littleDoraemon"
 
 # Environment variables for controlling CDN host and SNI values
@@ -888,7 +888,7 @@ gen_socks5_username() {
 }
 
 gen_socks5_password() {
-    tr -dc 'A-Za-z0-9!@#%^_+' </dev/urandom | head -c 12
+    tr -dc 'A-Za-z0-9' </dev/urandom | head -c 12
 }
 
 init_socks5_credentials() {
