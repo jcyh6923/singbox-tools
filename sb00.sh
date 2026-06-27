@@ -14,7 +14,7 @@ SB_LOG_PATH="$SINGBOX_FOLDER_PATH/logs"
 
  # ================== 常量和环境变量 结束 ==================
 
-VERSION="1.0.8(2026-06-26)"
+VERSION="1.0.9(2026-06-27)"
 AUTHOR="littleDoraemon"
 
 # Environment variables for controlling CDN host and SNI values
