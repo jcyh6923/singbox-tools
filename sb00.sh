@@ -1616,7 +1616,7 @@ sbbout(){
         cat >> "$SINGBOX_FOLDER_PATH/sb.json" <<EOF
 ],
 "outbounds": [ { "type": "direct", "tag": "direct" }, { "type": "block", "tag": "block" } ],
-"route": { "rules": [ { "action": "sniff" }, { "action": "resolve", "strategy": "${sbyx}" } ], "final": "direct" }
+"route": { "rules": [ { "inbound": ["socks5-sb"], "action": "direct" }, { "action": "sniff" }, { "action": "resolve", "strategy": "${sbyx}" } ], "final": "direct" }
 }
 EOF
         if has_systemd && [ "$EUID" -eq 0 ]; then
@@ -3105,7 +3105,7 @@ cip(){
 
         socks5_user_enc=$(url_encode_component "$socks5_username")
         socks5_pass_enc=$(url_encode_component "$socks5_password")
-        socks5_link="socks5://${socks5_user_enc}:${socks5_pass_enc}@${server_ip}:${port_socks5}#${sxname}socks5-$hostname"; 
+        socks5_link="socks5://${socks5_username}:${socks5_password}@${server_ip}:${port_socks5}#${sxname}socks5-$hostname"; 
         yellow "🧦【 Socks5 】(此协议请不要直接在客户端里直连使用)";
         green "$socks5_link"
         append_jh " "
