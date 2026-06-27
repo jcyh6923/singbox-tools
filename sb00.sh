@@ -7,6 +7,7 @@ export LANG=en_US.UTF-8
 SB_FOLDER="doraemon"
 SINGBOX_FOLDER_PATH="/root/$SB_FOLDER"
 OLD_SINGBOX_FOLDER="/root/agsb"  # 旧路径，用于兼容和清理
+SB_LOG_PATH="$SINGBOX_FOLDER_PATH/logs"
 # ================== 文件夹路径配置 结束 ==================
 
  # ================== 常量和环境变量 结束 ==================
@@ -942,7 +943,7 @@ prepare_argo_credentials() {
             return 1
         fi
 
-        mkdir -p "$SINGBOX_FOLDER_PATH"
+ mkdir -p "$SINGBOX_FOLDER_PATH" "$SB_LOG_PATH"
 
         # 写入 tunnel.json
         #❗ 如果 ARGO_AUTH 里的 JSON 含有 \n、\r、\uXXXX 之类，echo 在某些 shell/实现里可能会解释转义，导致 tunnel.json 内容被破坏。 改法：用 printf 更可靠
@@ -1467,7 +1468,7 @@ installsb(){
     local tmpj="$SINGBOX_FOLDER_PATH/.sb.tmp"
 
     # Initialize JSON with log config (matching index.js generateSingBoxConfig style)
-    jq -n --arg logfile "$SINGBOX_FOLDER_PATH/singbox.log" '{log: {disabled: false, level: "info", timestamp: true, output: $logfile}, inbounds: []}' > "$sbj"
+    jq -n --arg logfile "$SB_LOG_PATH/singbox.log" '{log: {disabled: false, level: "info", timestamp: true, output: $logfile}, inbounds: []}' > "$sbj"
 
     # 添加tuic协议
     if [ -n "$tup" ]; then
@@ -1745,8 +1746,8 @@ After=network.target
 Type=simple
 NoNewPrivileges=yes
 ExecStart=$SINGBOX_FOLDER_PATH/sing-box run -c $SINGBOX_FOLDER_PATH/sb.json
-StandardOutput=append:$SINGBOX_FOLDER_PATH/singbox.log
-StandardError=append:$SINGBOX_FOLDER_PATH/singbox.log
+StandardOutput=append:$SB_LOG_PATH/singbox.log
+StandardError=append:$SB_LOG_PATH/singbox.log
 Restart=on-failure
 RestartSec=5s
 [Install]
@@ -2181,7 +2182,7 @@ start_argo_no_daemon() {
 wait_and_check_argo() {
   local argo_tunnel_type="${1:-临时}"  # 第一个参数：隧道类型（固定/临时）
   local argo_log="$SINGBOX_FOLDER_PATH/argo.log"
-  local ym_log="$SINGBOX_FOLDER_PATH/sbargoym.log"
+  local ym_log="$SINGBOX_FOLDER_PATH/argo_domain"
   local argodomain=""
   local i=0
   local max_wait=5
@@ -2202,7 +2203,7 @@ wait_and_check_argo() {
       ;;
   esac
 
-  # ✅ 固定 Argo：域名只允许来自 ARGO_DOMAIN 或 sbargoym.log
+  # ✅ 固定 Argo：域名只允许来自 ARGO_DOMAIN 或 argo_domain
   if [ "$argo_tunnel_type" = "固定" ]; then
     if [ -n "${ARGO_DOMAIN}" ]; then
       argodomain="${ARGO_DOMAIN}"
@@ -2390,7 +2391,7 @@ is_valid_ip_simple() {
 }
 
 
-  # 4) 工具函数：输出写入 server_ip.log 的最终形式（IPv6 自动加 []）
+  # 4) 工具函数：输出写入 server_ip 的最终形式（IPv6 自动加 []）
   format_ip_for_log() {
     local ip
     ip="$(strip_ip_brackets_all "${1:-}")"
@@ -2474,15 +2475,15 @@ EOF
   fi
 
   debug_log "【调试】pick_server_ip_for_install：最终选择的服务器IP，server_ip=$server_ip"
-  # 9) 最终写入：IPv6 加 []，写入 $SINGBOX_FOLDER_PATH/server_ip.log
+  # 9) 最终写入：IPv6 加 []，写入 $SINGBOX_FOLDER_PATH/server_ip
   mkdir -p "$SINGBOX_FOLDER_PATH" 2>/dev/null || true
 
   local ip_final
   ip_final="$(format_ip_for_log "$server_ip" 2>/dev/null || true)"
   debug_log "【调试】pick_server_ip_for_install：最终写入的IP文件形式，ip_final=$ip_final"
-  echo "$ip_final" > "$SINGBOX_FOLDER_PATH/server_ip.log"
+  echo "$ip_final" > "$SINGBOX_FOLDER_PATH/server_ip"
 
-  debug_log "【调试】pick_server_ip_for_install：已写入 $SINGBOX_FOLDER_PATH/server_ip.log, ip_final=$ip_final"
+  debug_log "【调试】pick_server_ip_for_install：已写入 $SINGBOX_FOLDER_PATH/server_ip, ip_final=$ip_final"
 
 }
 
@@ -2518,13 +2519,13 @@ EOF
   [ -z "$v4dq" ] && v4dq="未知"
   [ -z "$v6dq" ] && v6dq="未知"
 
-  # C) 决定 current_server_ip： server_ip.log
+  # C) 决定 current_server_ip： server_ip
   local current_server_ip=""
   local out_norm
   out_norm="$(strip_ip_brackets_all "${out_ip:-}")"
 
-  if [ -s "$SINGBOX_FOLDER_PATH/server_ip.log" ]; then
-      current_server_ip="$(strip_ip_brackets_all "$(cat "$SINGBOX_FOLDER_PATH/server_ip.log" 2>/dev/null)")"
+  if [ -s "$SINGBOX_FOLDER_PATH/server_ip" ]; then
+      current_server_ip="$(strip_ip_brackets_all "$(cat "$SINGBOX_FOLDER_PATH/server_ip" 2>/dev/null)")"
   fi
 
 
@@ -2587,7 +2588,7 @@ ins(){
     set_sbyx
     sbbout
 
-    # 把ip写入server_ip.log
+    # 把ip写入server_ip
     write_server_ip
 
     # 2. Nginx（按需：subscribe=true 或启用 argo 才需要）
@@ -2666,7 +2667,7 @@ ins(){
           fi
 
             # 与原版一致：固定 Argo 域名直接落盘
-            echo "$ARGO_DOMAIN" > "$SINGBOX_FOLDER_PATH/sbargoym.log"
+            echo "$ARGO_DOMAIN" > "$SINGBOX_FOLDER_PATH/argo_domain"
             # token 模式下才会有 sbargotoken.log
             [ "$ARGO_MODE" = "token" ] && echo "$ARGO_AUTH" > "$SINGBOX_FOLDER_PATH/sbargotoken.log"
         else
@@ -2898,7 +2899,7 @@ show_sub_url() {
   [ -z "$sub_uuid" ] && return 0
 
 
-  local argodomain=$(cat "$SINGBOX_FOLDER_PATH/sbargoym.log" 2>/dev/null)
+  local argodomain=$(cat "$SINGBOX_FOLDER_PATH/argo_domain" 2>/dev/null)
 
   local need_argo_flag=false
   vlvm=$(cat $SINGBOX_FOLDER_PATH/vlvm 2>/dev/null);
@@ -2920,7 +2921,7 @@ show_sub_url() {
 
   # 普通 http：IP:PORT
   local server_ip
-  server_ip=$(cat "$SINGBOX_FOLDER_PATH/server_ip.log" 2>/dev/null)
+  server_ip=$(cat "$SINGBOX_FOLDER_PATH/server_ip" 2>/dev/null)
 
   if [ -z "$server_ip" ]; then
     server_ip="$( (curl -s4m5 -k https://icanhazip.com) || (wget -4 -qO- --tries=2 https://icanhazip.com) )"
@@ -3108,7 +3109,7 @@ cip(){
 
     rm -rf "$SINGBOX_FOLDER_PATH/jh.txt"; 
     uuid=$(cat "$SINGBOX_FOLDER_PATH/uuid"); 
-    server_ip=$(cat "$SINGBOX_FOLDER_PATH/server_ip.log" 2>/dev/null); 
+    server_ip=$(cat "$SINGBOX_FOLDER_PATH/server_ip" 2>/dev/null); 
     sxname=$(cat "$SINGBOX_FOLDER_PATH/name" 2>/dev/null);
 
     echo "*********************************************************"; 
@@ -3170,9 +3171,9 @@ cip(){
         echo;
     fi
 
-    #argodomain=$(cat "$SINGBOX_FOLDER_PATH/sbargoym.log" 2>/dev/null); [ -z "$argodomain" ] && argodomain=$(grep -a trycloudflare.com "$SINGBOX_FOLDER_PATH/argo.log" 2>/dev/null | awk 'NR==2{print}' | awk -F// '{print $2}' | awk '{print $1}')
+    #argodomain=$(cat "$SINGBOX_FOLDER_PATH/argo_domain" 2>/dev/null); [ -z "$argodomain" ] && argodomain=$(grep -a trycloudflare.com "$SINGBOX_FOLDER_PATH/argo.log" 2>/dev/null | awk 'NR==2{print}' | awk -F// '{print $2}' | awk '{print $1}')
    
-    argodomain=$(cat "$SINGBOX_FOLDER_PATH/sbargoym.log" 2>/dev/null)
+    argodomain=$(cat "$SINGBOX_FOLDER_PATH/argo_domain" 2>/dev/null)
 
     if need_argo && [ -z "$argodomain" ] && [ -s "$SINGBOX_FOLDER_PATH/argo.log" ]; then
         argodomain=$(grep -aoE '[a-zA-Z0-9.-]+trycloudflare\.com' "$SINGBOX_FOLDER_PATH/argo.log" 2>/dev/null | tail -n1)
@@ -3671,7 +3672,7 @@ if [ "$1" = "rep" ]; then
     green "开始覆盖式安装流程..."; 
     green "1、即将开始清理操作..."; 
     cleandel; 
-    rm -rf "$SINGBOX_FOLDER_PATH"/{sb.json,sbargoym.log,sbargotoken.log,argo.log,argoport.log,name,short_id,cdn_host,hy_sni,vl_sni,tu_sni,any_sni,vl_sni_pt,cdn_pt}; 
+    rm -rf "$SINGBOX_FOLDER_PATH"/{sb.json,argo_domain,sbargotoken.log,argo.log,argoport.log,name,short_id,cdn_host,hy_sni,vl_sni,tu_sni,any_sni,vl_sni_pt,cdn_pt}; 
     green "1.1、清理操作完成..."; 
     sleep 2; 
 
