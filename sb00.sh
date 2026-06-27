@@ -1043,7 +1043,19 @@ set_sbyx(){
     
 
     # Determine which connection to prefer based on the availability of IPv4 and IPv6
-    if [ "$v4_ok" = true ] && [ "$v6_ok" = true ]; then
+    if [ "$ippz" = "4" ]; then
+        if [ "$v4_ok" = true ]; then
+            sbyx='ipv4_only'
+        else
+            sbyx='prefer_ipv4'
+        fi
+    elif [ "$ippz" = "6" ]; then
+        if [ "$v6_ok" = true ]; then
+            sbyx='ipv6_only'
+        else
+            sbyx='prefer_ipv6'
+        fi
+    elif [ "$v4_ok" = true ] && [ "$v6_ok" = true ]; then
         sbyx='prefer_ipv6'
     elif [ "$v4_ok" = true ] && [ "$v6_ok" != true ]; then
         sbyx='ipv4_only'
