@@ -1093,7 +1093,7 @@ upsingbox(){
     rm -rf "/tmp/sing-box-${sb_ver}-linux-${cpu}" 2>/dev/null || true
 
     chmod +x "$SINGBOX_FOLDER_PATH/sing-box"
-    sbcore=$("$SINGBOX_FOLDER_PATH/sing-box" version 2>/dev/null | awk '/version/{print $NF}')
+    sbcore=$("$SINGBOX_FOLDER_PATH/sing-box" version 2>/dev/null | head -1 | awk '/version/{print $NF}')
     debug_log "【调试】upsingbox：Sing-box 版本为 $sbcore"
     green "✅  已安装 Sing-box 正式版内核：${sbcore}"
 }
@@ -1684,7 +1684,7 @@ installsb(){
 
     rm -f "$tmpj" 2>/dev/null || true
 
-    setup_warp_config   # WireGuard 解锁 Netflix/OpenAI/YouTube
+    # setup_warp_config   # 大陆外 VPS 不需要 WARP，注释掉
 }
 # Netflix/OpenAI/YouTube 走 WARP 解锁，其余直连 (matching index.js:498-560)
 # 这堆配置只做一件事：Netflix/OpenAI/YouTube 的流量走 WARP 隧道出去（用于解锁区域限制）。去掉后：
@@ -1748,9 +1748,9 @@ sbbout(){
             | .route.final = "direct"
             | if $warp then
                 if $need_youtube then
-                    .route.rules = [{rule_set: ["netflix", "youtube"], outbound: "wireguard-out"}] + [{action: "sniff"}, {action: "resolve", strategy: $sbyx}]
+                    .route.rules = [{rule_set: ["netflix", "openai", "youtube"], outbound: "wireguard-out"}] + [{action: "sniff"}, {action: "resolve", strategy: $sbyx}]
                 else
-                    .route.rules = [{rule_set: ["netflix"], outbound: "wireguard-out"}] + [{action: "sniff"}, {action: "resolve", strategy: $sbyx}]
+                    .route.rules = [{rule_set: ["netflix", "openai"], outbound: "wireguard-out"}] + [{action: "sniff"}, {action: "resolve", strategy: $sbyx}]
                 end
               else
                 .route.rules = [{action: "sniff"}, {action: "resolve", strategy: $sbyx}]
@@ -2716,9 +2716,9 @@ singbox_status() {
   # 1) sing-box
   if pgrep -f "$SINGBOX_FOLDER_PATH/sing-box" >/dev/null 2>&1; then
  
-    # sing-box version 1.13.14  → 匹配 1.13.14
+    # sing-box version 1.13.14  → 匹配 1.13.14（只取第一行）
     local singbox_version
-    singbox_version=$("$SINGBOX_FOLDER_PATH/sing-box" version 2>/dev/null | sed -n 's/.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
+    singbox_version=$("$SINGBOX_FOLDER_PATH/sing-box" version 2>/dev/null | head -1 | sed -n 's/.*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
     echo "Sing-box (版本V${singbox_version:-unknown})：✅ $(green "运行中")"
   else
     echo "Sing-box：❌ $(red "未运行")"
