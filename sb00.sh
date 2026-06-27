@@ -1661,7 +1661,7 @@ installsb(){
 
     rm -f "$tmpj" 2>/dev/null || true
 
-    setup_warp_config
+    # setup_warp_config  如需 WireGuard 解锁 Netflix/OpenAI/YouTube，取消注释本行
 }
 # Netflix/OpenAI/YouTube 走 WARP 解锁，其余直连 (matching index.js:498-560)
 # 这堆配置只做一件事：Netflix/OpenAI/YouTube 的流量走 WARP 隧道出去（用于解锁区域限制）。去掉后：
@@ -1682,8 +1682,7 @@ setup_warp_config() {
     printf '%s\n' "$need_youtube_warp" > "$SINGBOX_FOLDER_PATH/.youtube_warp"
 
     jq --argjson need_youtube "$need_youtube_warp" '
-        .http_clients = [{tag: "http-client-direct"}]
-        | .endpoints = [{
+        .endpoints = [{
             type: "wireguard",
             tag: "wireguard-out",
             mtu: 1280,
@@ -1697,7 +1696,6 @@ setup_warp_config() {
                 reserved: [78, 135, 76]
             }]
         }]
-        | .route.default_http_client = "http-client-direct"
         | .route.rule_set = [
             {tag: "netflix", type: "remote", format: "binary", url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/netflix.srs"},
             {tag: "openai", type: "remote", format: "binary", url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/openai.srs"}
