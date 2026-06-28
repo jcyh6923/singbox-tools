@@ -2,8 +2,9 @@
 # 1、 singbox 安装以及卸载
 ## singbox 一键安装脚本（vmess argo/trojan argo 选1 + hy2+vless-Reality+tuic+anytls+socks5，这些协议可自由组合）
 
-举🌰说明（这里会列出所有支持的环境变量）：
+举个例子🌰说明（这里会列出所有支持的环境变量）：
 
+> **⚠️ 为了统一，sb.sh 仅接受单引号包裹的字符串值，也就是说不是数字时，强烈建议使用英文输入法的单引号包裹整个字符串起来。请不要使用双引号，因为socks5_password有些人用了特殊字符，特殊字符遇到双引号或者没加任何引号会有问题，所以这里规定只能用英文输入法的单引号包裹字符串** 
 
 ```
 
@@ -13,11 +14,11 @@ hy_sni='www.apple.com' \
 vl_sni='www.apple.com' \
 vl_sni_pt=443 \
 tu_sni='www.apple.com' \
-uuid=0631a7f3-09f8-4144-acf2-a4f5bd9ed281 \
+uuid=0631a7f3-09f8-4144-acf2-a4f5bd9ed200 \
 ippz=4 \
 out_ip='你的特殊出口ip(仅当你的出口ip和服务器ip不一致时有效，需配合ipzz使用，一般情况下留空或者不传值)' \
-trpt=41002 \
-vlrt=41003 \
+trpt=41002(备注：pt为 port的简写) \
+vlrt=41003(备注：rt为 reality port的简写) \
 hypt=41004 \
 tupt=41005 \
 argo="trpt" \
@@ -38,8 +39,8 @@ bash <(curl -Ls https://raw.githubusercontent.com/jyucoeng/singbox-tools/refs/he
 ```
 # 环境变量说明
 
-##  1、 如果bash后面跟了一个参数 rep（如果没写这个参数默认视为安装），代表覆盖式安装（会卸载后再安装），你可以用这个改成其他功能，比如del 代表 卸载, list 代表 查看节点，具体有哪些值你可以跑一次安装脚本你就知道怎么用了。
- bash  agsb.sh list key 这里有2个参数 list key，代表显示节点的同时会显示vless Reality的密钥。如果不加key 参数，就只显示节点
+##  1、 如果bash后面跟了一个参数 rep，代表覆盖式安装（会卸载后再安装），你可以用这个改成其他功能，比如del 代表 卸载, list 代表 查看节点，具体有哪些值你可以跑一次安装脚本你就知道怎么用了。
+### bash  sb.sh list key 这里有2个参数 list key，代表显示节点的同时会显示vless Reality的密钥。如果不加key 参数，就只显示节点
 
 ## 2、 uuid=XXXX-xxx-XXXX（可传，也可不传）
 
@@ -49,8 +50,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/jyucoeng/singbox-tools/refs/he
 
 ## 3、 cdn_host、cdn_pt、hy_sni、tu_sni、vl_sni、vl_sni_pt、any_sni、argo_pt、socks5pt（以及cdn域名 和 各协议的伪装域名，可选)
 
-❗除了vl_sni、vl_sni_pt 属于安装时自定义，其他几个都属于任何时候都可以在客户端 随便修改） 
-❗注意：这几个值不会填的话就不要瞎传（可直接留空或者干脆删去这个环境变量）
+❗注意：这几个值不会填的话就不要瞎传（可直接留空或者干脆删去这个变量）
 -----
  ## 最佳实践
 ### 不要用以下域名作为 sni(❗❗❗这点非常重要，不然你的vps小鸡端口被恶意扫描到的时候，将会被作为无限制流量转发端口，你的节点的流量会嗖嗖被刷，反正你不知道该写什么域名作为sni，那比较明智的做法是留空，我已经内置了sni默认值)：
@@ -123,15 +123,15 @@ trojan://0631a7f3-09f8-4144-acf2-a4f5bd9ed281@cdns.doon.eu.org:8443?...
 
  👉 out_ip='你的特殊出口ip(仅当你的出口ip和服务器ip不一致时有效，需配合ipzz使用)' ，比如：
 
- - 出口为ipv4, out_ip='216.166.22.30',ipzz=4(当服务器ip为216.166.22.250时，你的出口ip由于某个原因被分给了216.166.22.30，正常情况下，脚本会默认使用250这个ip作为出口ip，针对你这个需求，你就可以设置这2个变量来解决这个设定出口为30的特殊要求)
+ - 出口为ipv4, out_ip='216.166.22.30',ipzz=4(当服务器的 ssh ip和出口ip不一致，比如vps里面获取到ip为216.166.22.250（出口ip）时，但是你ssh ip为216.166.22.30，正常情况下，脚本会默认使用250这个ip作为出口ip，但是你节点出来之后如果用250会不通，因为跟你ssh ip不一致，你需要手动改成30这个ip才通，针对你这个需求，你就可以设置这个out_ip变量来解决这个设定出口为30的特殊要求)
  
+- 出口为ipv6, out_ip='2602:294:0:b7:1234:1234:d9d4:0001',ipzz=6 (当服务器ip为2602:294:0:b7:1234:1234:d9d4:2600时，你的出口ip由于某个原因被分给了2602:294:0:b7:1234:1234:d9d4:0001，正常情况下，脚本会默认使用2600这个ip作为出口ip，针对你这个需求，你就可以设置这2个变量来解决这个设定出口为0001的特殊要求)
+
 
  <img width="602" height="132" alt="CleanShot 2026-01-26 at 12 57 34" src="https://github.com/user-attachments/assets/57c1a329-9292-45b5-aa23-3c59cd3e3356" />
 
 
   
-  - 出口为ipv6, out_ip='2602:294:0:b7:1234:1234:d9d4:0001',ipzz=6 (当服务器ip为2602:294:0:b7:1234:1234:d9d4:2600时，你的出口ip由于某个原因被分给了2602:294:0:b7:1234:1234:d9d4:0001，正常情况下，脚本会默认使用2600这个ip作为出口ip，针对你这个需求，你就可以设置这2个变量来解决这个设定出口为0001的特殊要求)
-
  ## 👆 👆 👆
 
  ## 5、 各种端口
@@ -146,9 +146,9 @@ trojan://0631a7f3-09f8-4144-acf2-a4f5bd9ed281@cdns.doon.eu.org:8443?...
    socks5pt=31017 \
    nginx_pt=31007 \
    ```
-   这些分别为trojan、hy2、vless、tuic、anytls、vmess、socks5、nginx订阅地址的端口
-
-
+   这些分别为trojan、hy2、vless、tuic、anytls、vmess、socks5、nginx订阅地址的端口.
+   - pt为 port的简写
+   - rt为 reality port的简写
 
 ## 6、 nginx_pt=? nginx订阅端口，默认值为 8080。
 
@@ -196,7 +196,7 @@ trojan://0631a7f3-09f8-4144-acf2-a4f5bd9ed281@cdns.doon.eu.org:8443?...
 - ➡ HK-vmess / HK-vless
 
 ## 11、 reality_private  此为vless Reallity协议的密钥。
-传这个值是为了你在安装和重装节点的时候，生成的vless节点保持一致。
+传这个值是为了你在安装和重装节点的时候，生成的vless节点保持一致,这样你就不用来回导入节点了，不加这个的话每次生成的证书都会不一样的。
 
 如果不在意一致，你可以直接不用管。不传的时候，这个值会自动生成。
 然后安装或者重装完成的时候，会打印一次给你，请自行保存这个值。
@@ -215,7 +215,7 @@ trojan://0631a7f3-09f8-4144-acf2-a4f5bd9ed281@cdns.doon.eu.org:8443?...
 
 ### 这里给列出一些基础变量
 ```bash
-uuid=0631a7f3-09f8-4144-acf2-a4f5bd9ed281 \
+uuid=0631a7f3-09f8-4144-acf2-a4f5bd9ed200 \
 ippz=4 \
 trpt=41002 \
 vlrt=41003 \
@@ -225,8 +225,8 @@ anypt=41006 \
 argo="trpt" \
 nginx_pt=41007 \
 socks5pt=31017 \
-socks5_username='你的s5用户名' \
-socks5_password='你的s5密码含特殊字符(!#$等)必须用单引号包裹整个密码串' \
+socks5_username='zhangsan' \
+socks5_password='Zsztm4gdsg!' \
 agn="california.xxxx.xyz" \
 agk='ey开头的那一大串' \
 subscribe=true \
@@ -240,35 +240,35 @@ bash <(curl -Ls https://raw.githubusercontent.com/jyucoeng/singbox-tools/refs/he
 
 ## 组合1️⃣、 仅 1个直连协议（不走 Argo,hypt与vlrt、tupt这几个端口参数选一个来写）
 
-### 只要hy2协议
+### 仅hy2协议
 
 ```bash
 hypt=2082 \
 bash <(curl -Ls https://raw.githubusercontent.com/jyucoeng/singbox-tools/refs/heads/main/sb.sh) rep
 ```
 
-### 只要vless Reality协议
+### 仅vless Reality协议
 
 ```bash
 vlrt=2083 \
 bash <(curl -Ls https://raw.githubusercontent.com/jyucoeng/singbox-tools/refs/heads/main/sb.sh) rep
 ```
 
-### 只要tuic协议
+### 仅tuic协议
 
 ```bash
 tupt=2082 \
 bash <(curl -Ls https://raw.githubusercontent.com/jyucoeng/singbox-tools/refs/heads/main/sb.sh) rep
 ```
 
-### 只要anytls协议
+### 仅anytls协议
 
 ```bash
 anypt=2082 \
 bash <(curl -Ls https://raw.githubusercontent.com/jyucoeng/singbox-tools/refs/heads/main/sb.sh) rep
 ```
 
-## 只要 socks5 协议
+## 仅socks5 协议
 
 ```bash
 socks5pt=31017 \
@@ -324,36 +324,6 @@ agk="ey开头的那一串" \
 name="小叮当-韩国春川"  \
 bash <(curl -Ls https://raw.githubusercontent.com/jyucoeng/singbox-tools/refs/heads/main/sb.sh)  rep
 ```
-
-
-## 5️⃣、我自己的测试用例（5协议，hy2+vless+tuic+anytls+trojan Argo）
-
-### argo tunnel的token为普通字符串的场景：
-```bash
-cdn_host="cdns.doon.eu.org" \
-cdn_pt=8443 \
-hy_sni="time.js" \
-vl_sni="www.yahoo.com" \
-vl_sni_pt=443 \
-tu_sni="time.js" \
-any_sni="www.yahoo.com" \
-uuid=0631a7f3-09f8-4144-acf2-a4f5bd9ed281 \
-ippz=4 \
-trpt=41002 \
-vlrt=41003 \
-hypt=41004 \
-tupt=41005 \
-anypt=41006 \
-argo="trpt" \
-nginx_pt=41007 \
-agn="california.xxxx.xyz" \
-agk='ey开头的那一大串' \
-subscribe=true \
-reality_private=GHxxxxxxxxxxxxx-xxxxxx-VnXH6FjxxA \
-name="小叮当-美国加州"  \
-bash <(curl -Ls https://raw.githubusercontent.com/jyucoeng/singbox-tools/refs/heads/main/sb.sh)  rep
-```
-
 
 
 ### argo tunnel的json token的场景：（请一定要记得json格式的时候，要用英文单引号包裹起来）
@@ -416,6 +386,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/jyucoeng/singbox-tools/refs/he
 
 
 ## 版本变更信息
+
 v1.0.9
  - 改用官方 sing-box 1.13.14（默认含 WireGuard）
  - 移除 `sniff: true` 适配新版 sing-box 1.13+
